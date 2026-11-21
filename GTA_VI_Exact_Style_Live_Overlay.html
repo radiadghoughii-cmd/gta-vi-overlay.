@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GTA VI Overlay — Live Count Up</title>
+<style>
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+  }
+  body { font-family: Arial, Helvetica, sans-serif; }
+  svg { display: block; width: 100vw; height: 100vh; }
+  #timer {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 123px;
+    font-weight: 800;
+    letter-spacing: -3px;
+    fill: #fff;
+    text-anchor: middle;
+    dominant-baseline: auto;
+    filter: url(#timerGlow);
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 1672 941" xmlns="http://www.w3.org/2000/svg" aria-label="GTA VI game progress overlay">
+  <defs>
+    <linearGradient id="badgeGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#813cff"/>
+      <stop offset=".53" stop-color="#d632cb"/>
+      <stop offset="1" stop-color="#ff806d"/>
+    </linearGradient>
+    <linearGradient id="frameGradient" x1="0" y1="0" x2="1" y2=".15">
+      <stop offset="0" stop-color="#883cff"/>
+      <stop offset=".52" stop-color="#e42acb"/>
+      <stop offset="1" stop-color="#ff9d56"/>
+    </linearGradient>
+    <linearGradient id="logoGradient" x1="0" y1="0" x2=".15" y2="1">
+      <stop offset="0" stop-color="#7547ff"/>
+      <stop offset=".48" stop-color="#ec32c8"/>
+      <stop offset="1" stop-color="#ff9d45"/>
+    </linearGradient>
+    <filter id="badgeShadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="7" result="blur"/>
+      <feOffset dy="2" result="offset"/>
+      <feComponentTransfer><feFuncA type="linear" slope=".28"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="timerGlow" x="-20%" y="-50%" width="140%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur1"/>
+      <feColorMatrix in="blur1" type="matrix"
+        values="0 0 0 0 0.67  0 0 0 0 0.15  0 0 0 0 1  0 0 0 1 0" result="purpleGlow"/>
+      <feMerge><feMergeNode in="purpleGlow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="logoShadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="b"/>
+      <feOffset dx="1" dy="3" result="o"/>
+      <feMerge><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Main dark panel and neon outline -->
+  <path d="M846 570 L1519 570 L1519 792
+           Q1519 831 1480 831 L884 831
+           Q846 831 846 793 Z"
+        fill="#10101d" fill-opacity=".96"
+        stroke="url(#frameGradient)" stroke-width="9"
+        stroke-linejoin="round"/>
+
+  <!-- GAME badge -->
+  <g filter="url(#badgeShadow)">
+    <rect x="770" y="492" width="188" height="146" rx="31"
+          fill="url(#badgeGradient)" stroke="#fff" stroke-width="7"/>
+    <text x="864" y="535" fill="#fff" text-anchor="middle"
+          font-size="29" font-weight="800" letter-spacing="4">GAME</text>
+    <text x="864" y="603" fill="#fff" text-anchor="middle"
+          font-size="68" font-weight="800" letter-spacing="-2">32%</text>
+  </g>
+
+  <!-- DAY badge -->
+  <g filter="url(#badgeShadow)">
+    <rect x="1450" y="492" width="145" height="158" rx="31"
+          fill="url(#badgeGradient)" stroke="#fff" stroke-width="7"/>
+    <text x="1522.5" y="535" fill="#fff" text-anchor="middle"
+          font-size="28" font-weight="800" letter-spacing="4">DAY</text>
+    <text x="1522.5" y="618" fill="#fff" text-anchor="middle"
+          font-size="76" font-weight="800">3</text>
+  </g>
+
+  <!-- Dynamic count-up timer, initially 25:00:00 -->
+  <text id="timer" x="1190" y="750">25:00:00</text>
+
+  <!-- Small VI mark at the lower-left corner of the frame -->
+  <g filter="url(#logoShadow)" stroke="#7335ec" stroke-width="4" stroke-linejoin="miter">
+    <path d="M802 778 L840 778 L851 804 L864 778 L899 778 L850 879 Z"
+          fill="url(#logoGradient)"/>
+    <path d="M899 778 L934 778 L934 881 L900 881 Z"
+          fill="url(#logoGradient)"/>
+  </g>
+</svg>
+
+<script>
+(() => {
+  // Starts at 25:00:00 and counts upward automatically.
+  // The saved start timestamp lets it continue after a browser-source refresh.
+  const STORAGE_KEY = "gta_vi_overlay_started_at_v2";
+  const START_AT_SECONDS = 25 * 60 * 60;
+
+  let startedAt = Number(localStorage.getItem(STORAGE_KEY));
+  if (!Number.isFinite(startedAt) || startedAt <= 0) {
+    startedAt = Date.now();
+    localStorage.setItem(STORAGE_KEY, String(startedAt));
+  }
+
+  const timer = document.getElementById("timer");
+
+  function tick() {
+    const elapsed = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+    const total = START_AT_SECONDS + elapsed;
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const seconds = total % 60;
+    timer.textContent =
+      String(hours).padStart(2, "0") + ":" +
+      String(minutes).padStart(2, "0") + ":" +
+      String(seconds).padStart(2, "0");
+  }
+
+  tick();
+  setInterval(tick, 250);
+})();
+</script>
+</body>
+</html>
